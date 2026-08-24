@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# User progress data - never ship personal records
+data/*.json
+data/*.jsonl
+
+# Secrets
+.env
+*.key
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# debug-script artifact
+/null/

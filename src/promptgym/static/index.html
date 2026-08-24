@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PromptGym</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#1c2333; --line:#30363d;
+  --fg:#e6edf3; --dim:#8b949e; --green:#3fb950; --red:#f85149;
+  --yellow:#d29922; --blue:#58a6ff; --purple:#bc8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Cascadia Code",Consolas,Menlo,monospace;font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{font-weight:bold;color:var(--green);letter-spacing:2px}
+.logo span{color:var(--dim)}
+#modelInfo{color:var(--dim);font-size:12px}
+#doctorDot{width:10px;height:10px;border-radius:50%;background:var(--dim);cursor:pointer;display:inline-block}
+.config{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--panel2);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.config select,.config input[type=number]{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:4px 8px;border-radius:4px}
+.tgl{display:flex;align-items:center;gap:4px;color:var(--dim);cursor:pointer;user-select:none}
+.tgl input{accent-color:var(--green)}
+button{background:#21262d;color:var(--fg);border:1px solid var(--line);padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--blue)}
+button.primary{background:#238636;border-color:#2ea043}
+button:disabled{opacity:.45;cursor:not-allowed}
+main{flex:1;display:flex;min-height:0}
+#arenaWrap{flex:1;display:flex;flex-direction:column;min-width:0}
+#chat{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.bubble{max-width:78%;padding:10px 14px;border-radius:10px;white-space:pre-wrap;word-wrap:break-word;line-height:1.45}
+.you{align-self:flex-end;background:#1f3a5f;border:1px solid #2b4a77}
+.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line)}
+.meta{font-size:11px;color:var(--dim);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{padding:1px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.chip.win{color:var(--green);border-color:var(--green)}
+.chip.REFUSAL{color:var(--red);border-color:var(--red)}
+.chip.EVASION{color:var(--yellow);border-color:var(--yellow)}
+.chip.PARTIAL{color:var(--purple);border-color:var(--purple)}
+.chip.LEAK{color:var(--green);border-color:var(--green)}
+.chip.NEUTRAL{color:var(--dim)}
+.note{color:var(--red);font-size:12px;margin-top:4px}
+.banner{margin:0 16px;padding:10px 14px;border-radius:8px;text-align:center;font-weight:bold;display:none}
+.banner.verdict{background:#2d1b00;border:1px solid var(--yellow);color:var(--yellow)}
+.banner.done{background:#0e2a15;border:1px solid var(--green);color:var(--green)}
+#inputRow{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
+#payload{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--fg);padding:10px 12px;border-radius:6px;font-family:inherit;font-size:14px}
+#payload:focus{outline:none;border-color:var(--blue)}
+#preview{padding:0 16px 8px;background:var(--panel);color:var(--dim);font-size:12px;min-height:22px}
+#preview b{color:var(--blue)}
+aside{width:360px;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;text-align:center;padding:9px 0;cursor:pointer;color:var(--dim);user-select:none}
+.tab.active{color:var(--green);border-bottom:2px solid var(--green)}
+.panel{flex:1;overflow-y:auto;padding:14px;display:none}
+.panel.active{display:block}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+th,td{border:1px solid var(--line);padding:4px 6px;text-align:left}
+th{color:var(--dim);background:var(--panel2)}
+h3{font-size:13px;color:var(--blue);margin:10px 0 6px}
+.kv{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.doctorOK{color:var(--green)}.doctorWARN{color:var(--yellow)}.doctorFAIL{color:var(--red)}
+footer{display:flex;justify-content:space-between;padding:7px 16px;background:var(--panel);border-top:1px solid var(--line);color:var(--dim);font-size:12px}
+#tagModal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
+#tagBox{background:var(--panel);border:1px solid var(--green);border-radius:10px;padding:24px;text-align:center}
+#tagBox h3{color:var(--green);margin-bottom:14px}
+.tagBtns{display:flex;flex-direction:column;gap:6px}
+.tagBtns button{text-align:left;min-width:280px}
+.spin{animation:pulse 1s infinite;color:var(--yellow)}
+@keyframes pulse{50%{opacity:.35}}
+.hint{color:var(--dim);font-size:12px;padding:8px 16px}
+.modeBtn{padding:4px 10px;font-size:12px;border-radius:6px}
+.modeBtn.active{border-color:var(--green);color:var(--green)}
+.kv input,.kv select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px 6px;font-family:inherit;font-size:12px}
+#modeStrip{display:flex;gap:6px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PROMPT<span>GYM</span></div>
+  <span id="modelInfo">loading…</span>
+  <span id="doctorDot" title="run doctor"></span>
+  <span style="flex:1"></span>
+  <span id="crescChip" class="chip" style="display:none"></span>
+</header>
+
+<div class="config">
+  <div id="modeStrip">
+    <button class="modeBtn active" data-mode="free">FREE</button>
+    <button class="modeBtn" data-mode="daily">DAILY</button>
+    <button class="modeBtn" data-mode="gauntlet">GAUNTLET</button>
+    <button class="modeBtn" data-mode="sim">SIM</button>
+    <button class="modeBtn" data-mode="weak">WEAK</button>
+    <button class="modeBtn" data-mode="compare">COMPARE</button>
+  </div>
+  <label style="display:none" id="cmpRow">Models (comma sep)
+    <input type="text" id="cmpModels" placeholder="llama-3.3-70b-versatile, gemma2-9b-it" style="background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:4px 8px;border-radius:4px;width:280px">
+  </label>
+  <span id="tierWrap"><label>Tier
+    <select id="tierSel"></select>
+  </label></span>
+  <label class="tgl"><input type="checkbox" id="strictTgl">STRICT</label>
+  <label class="tgl"><input type="checkbox" id="judgeTgl">JUDGE</label>
+  <label class="tgl"><input type="checkbox" id="cresTgl">CRESCENDO</label>
+  <label class="tgl" id="pwWrap" title="non-credential secrets on tiers 1-4 - solvable on hardened models"><input type="checkbox" id="pwTgl">🛞 PRACTICE</label>
+  <button class="primary" id="newBtn">▶ START</button>
+  <button id="skipBtn" style="display:none" title="skip = scored DNF">⏭ SKIP (DNF)</button>
+  <span id="drillHud" class="chip" style="display:none"></span>
+  <span id="cfgHint" class="hint">pick a tier and start attacking</span>
+</div>
+
+<main>
+  <div id="arenaWrap">
+    <div id="chat"><div class="hint">No session yet. Pick a tier above and hit START.</div></div>
+    <div class="banner" id="stuckHint"></div>
+    <div class="banner" id="banner"></div>
+    <div id="inputRow">
+      <input id="payload" placeholder="type payload, enter to attack…" autocomplete="off" disabled>
+      <button id="sendBtn" disabled>ATTACK</button>
+    </div>
+    <div id="preview">token preview appears as you type</div>
+  </div>
+
+  <aside>
+    <div class="tabs">
+      <div class="tab active" data-p="stats">STATS</div>
+      <div class="tab" data-p="heatmap">HEATMAP</div>
+      <div class="tab" data-p="report">REPORT</div>
+      <div class="tab" data-p="settings">SETUP</div>
+      <div class="tab" data-p="doctorTab">DOCTOR</div>
+      <div class="tab" data-p="history">HIST</div>
+    </div>
+    <div class="panel active" id="p-stats"><button id="csvBtn">⬇ export.csv</button><div id="statsBody"><div class="hint">solve tiers to fill this</div></div></div>
+    <div class="panel" id="p-heatmap"><div class="hint">tagged wins build these grids</div></div>
+    <div class="panel" id="p-report"><button id="repRun">REFRESH REPORT</button><div id="reportOut"></div></div>
+    <div class="panel" id="p-settings"></div>
+    <div class="panel" id="p-doctorTab"><button id="docRun">RUN DOCTOR</button><div id="doctorOut"></div></div>
+    <div class="panel" id="p-history"><div class="hint">last attempts appear here</div></div>
+  </aside>
+</main>
+
+<footer>
+  <span id="sessTotals">session: –</span>
+  <span id="budgetLine">refusal budget: 0 · evasions: 0</span>
+</footer>
+
+<div id="tagModal"><div id="tagBox">
+  <h3>SOLVED — tag the technique</h3>
+  <div class="tagBtns" id="tagBtns"></div>
+</div></div>
+
+<script>
+const TOKEN = "__PG_TOKEN__";
+const $ = id => document.getElementById(id);
+let S = {configured:false, provider:{}, turns:[]};
+
+/* ---------- live client-side token preview ---------- */
+function estTokens(s){
+  s = s.trim(); if(!s) return 0;
+  let t = 0;
+  for(const w of s.split(/\s+/)) t += Math.max(1, Math.ceil(w.length/4));
+  const syms = (s.match(/[^A-Za-z0-9\s]/g) || []).length;
+  t += Math.ceil(syms * 0.5);
+  return Math.max(1, Math.round(t));
+}
+function updatePreview(){
+  const p = $("payload").value;
+  if(!S.provider.model || !p.trim()){ $("preview").textContent = p ? "" : "token preview appears as you type"; return; }
+  const tk = estTokens(p);
+  const pin = S.provider.price_in_per_m || 0, pout = S.provider.price_out_per_m || 0;
+  const usd = (tk * pin / 1e6) + (120 * pout / 1e6);
+  $("preview").innerHTML = "estimated before send: <b>≈ " + tk +
+    " tok</b> · ≈ $" + usd.toFixed(6) + " <span style='opacity:.6'>(heuristic chars≈tok/4; server counts exactly)</span>";
+}
+$("payload").addEventListener("input", ()=>{ updatePreview(); refreshSendBtn(); });
+
+/* ---------- helpers ---------- */
+let ARENA_ON = false;
+function refreshSendBtn(){
+  $("sendBtn").disabled = !ARENA_ON || !$("payload").value.trim();
+}
+async function api(path, opts){
+  const headers = {"X-PromptGym-Token": TOKEN};
+  if(opts) headers["Content-Type"] = "application/json";
+  const r = await fetch(path, opts ? {method:"POST", headers, body:JSON.stringify(opts)} : {headers});
+  const j = await r.json().catch(()=>({error:"bad json"}));
+  if(!r.ok) throw new Error(j.error || ("HTTP "+r.status));
+  return j;
+}
+function chip(cls, txt){ return `<span class="chip ${cls}">${txt}</span>`; }
+function esc(s){ return document.createElement("div").textContent = String(s), ""; }
+function safe(s){ const d=document.createElement("div"); d.textContent=String(s); return d.innerHTML; }
+
+function addBubble(role, text, metaHtml){
+  $("chat").insertAdjacentHTML("beforeend",
+    `<div class="bubble ${role}">${safe(text)}${metaHtml?`<div class="meta">${metaHtml}</div>`:""}</div>`);
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+
+/* ---------- session control ---------- */
+let MODE = "free";
+document.querySelectorAll(".modeBtn").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    MODE = b.dataset.mode;
+    $("tierWrap").style.display = (MODE==="free"||MODE==="compare") ? "" : "none";
+    $("cmpRow").style.display = MODE==="compare" ? "" : "none";
+    $("cfgHint").textContent = {
+      free:"pick a tier and start attacking",
+      daily:"today's worldwide seeded puzzle — same for everyone, share your result",
+      gauntlet:"5 random tiers, 20 min each, strict scoring, skip = DNF",
+      sim:"3 random tiers on ONE shared 60-min clock — the pressure cooker",
+      weak:"auto-queues your statistically worst tiers",
+      compare:"same tier across every model listed — build your transfer matrix",
+    }[MODE];
+  };
+});
+$("cmpModels").addEventListener("focus", async ()=>{
+  if(!$("cmpModels").value){
+    try{ const c = await api("/api/config"); $("cmpModels").value = c.models || ""; }catch(e){}
+  }
+});
+
+async function startDrill(){
+  const body = {type:MODE};
+  if(MODE==="compare") body.models = $("cmpModels").value;
+  if(MODE==="compare") body.level = parseInt($("tierSel").value)||1;
+  const st = await api("/api/drill/start", body);
+  S.drillActive = true;
+  S.turns = [];
+  $("chat").innerHTML = "";
+  addBubble("bot", `DRILL ${st.type.toUpperCase()} armed — tier ${st.index+1}/${st.total}: ${st.current?st.current.tier_label:""}`,
+            chip("NEUTRAL","strict"));
+  for(const line of (st.current&&st.current.bootstrap_lines)||[]) addBubble("bot", line, "");
+  setArenaEnabled(true);
+  $("skipBtn").style.display="";
+  updateDrillHud(st);
+  $("banner").className="banner"; $("banner").style.display="none";
+  if(st.current && st.current.hint) $("cfgHint").textContent = st.current.hint;
+  $("payload").focus();
+}
+function updateDrillHud(st){
+  const hud=$("drillHud");
+  if(!S.drillActive){ hud.style.display="none"; return; }
+  hud.style.display="inline-block";
+  let txt = `${(st.type||"drill").toUpperCase()} ${Math.min((st.index??0)+1,st.total)}/${st.total}`;
+  if(st.remaining_s!=null) txt += ` · ⏱ ${Math.max(0,Math.round(st.remaining_s/60))}m`;
+  hud.textContent = txt;
+}
+async function skipTier(){
+  try{
+    const st = await api("/api/drill/skip");
+    addBubble("bot","", "<span class='note'>skipped — scored as DNF</span>");
+    applyDrillStatus(st);
+  }catch(e){ alert(e.message); }
+}
+function applyDrillStatus(st){
+  updateDrillHud(st);
+  if(st.done){
+    S.drillActive=false;
+    $("skipBtn").style.display="none";
+    setArenaEnabled(false);
+    $("cfgHint").textContent="drill complete — pick another mode";
+    showCard(st);
+  } else if(st.current){
+    $("chat").insertAdjacentHTML("beforeend",
+      `<div class="hint" style="padding:4px 0">next ▸ ${safe(st.current.tier_label)}</div>`);
+    for(const line of (st.current.bootstrap_lines||[])) addBubble("bot", line, "");
+    $("payload").focus();
+  }
+}
+function showCard(st){
+  if(st.scorecard){
+    addBubble("bot", st.scorecard.lines.join("\n"),
+              chip("win", "SCORE "+st.scorecard.score));
+  }
+  if(st.share_string){
+    showBanner("done","SHARE: "+st.share_string);
+    navigator.clipboard?.writeText(st.share_string).catch(()=>{});
+  }
+}
+async function loadState(){
+  S = await api("/api/state");
+  S.turns = [];
+  $("modelInfo").textContent =
+    `${S.provider.model} @ ${S.provider.base_url_host}` +
+    (S.provider.api_key_set ? "" : "  ⚠ NO API KEY");
+  $("doctorDot").style.background = S.provider.api_key_set ? "var(--green)" : "var(--red)";
+  if(S.configured && !S.done){
+    restoreSession();
+  } else {
+    $("cfgHint").textContent = "pick a tier and start attacking";
+  }
+  renderTierSelect(); refreshStats(); refreshHeatmap(); refreshHistory();
+}
+function renderTierSelect(){
+  const sel = $("tierSel");
+  sel.innerHTML = "";
+  for(const t of (S.tiers||[])){
+    sel.insertAdjacentHTML("beforeend",
+      `<option value="${t.id}">T${t.id} — ${t.name}</option>`);
+  }
+  sel.onchange = ()=>{
+    const pwOk = parseInt(sel.value) <= 4;
+    $("pwTgl").checked = $("pwTgl").checked && pwOk;
+    $("pwWrap").style.opacity = pwOk ? "1" : ".4";
+    $("pwWrap").title = pwOk ? "non-credential secrets on tiers 1-4"
+                             : "practice wheels only apply to tiers 1-4";
+  };
+}
+async function newSession(){
+  const body = {
+    level: parseInt($("tierSel").value)||1,
+    strict: $("strictTgl").checked,
+    judge: $("judgeTgl").checked,
+    crescendo: $("cresTgl").checked,
+    practice_wheels: $("pwTgl").checked,
+  };
+  const st = await api("/api/start", body);
+  S = Object.assign(S, st); S.turns = [];
+  $("chat").innerHTML = "";
+  addBubble("bot","fresh secret deployed. classify the defense, then attack.", chip("NEUTRAL","T"+st.level+" armed"));
+  for(const line of (st.bootstrap_lines||[])) addBubble("bot", line, "");
+  setArenaEnabled(true);
+  updateCresChip(st);
+  $("banner").className="banner"; $("banner").style.display="none";
+  $("stuckHint").style.display="none";
+  $("cfgHint").textContent = st.tier_label + (st.hint ? " — "+st.hint : "");
+  if(st.practice) $("cfgHint").textContent += " · 🛞 practice wheels ON";
+  $("payload").focus();
+}
+function restoreSession(){
+  // server had an unfinished game we can't fully rebuild visually; surface it
+  $("chat").innerHTML = "";
+  addBubble("bot","server still holds a session from earlier (T"+S.level+"). Start a NEW SESSION to reset, or continue blind:", "");
+  setArenaEnabled(!S.done);
+  updateCresChip(S);
+}
+function setArenaEnabled(on){
+  ARENA_ON = on;
+  $("payload").disabled = !on;
+  refreshSendBtn();
+  if(on) updatePreview();
+}
+function showStuckHint(streak, level, practice){
+  const b = $("stuckHint");
+  if(practice || level > 4 || ![6, 9, 12].includes(streak)){ b.style.display="none"; return; }
+  b.innerHTML = "🛑 " + streak + " straight misses. This model family may hold low tiers via its own safety training — switch family in SETUP, flip 🛞 PRACTICE, or jump to T9/T10 (policy-mandated encoding = sanctioned leaks).";
+  b.className = "banner verdict"; b.style.display = "block";
+}
+function updateCresChip(st){
+  const c = $("cresChip");
+  if(st.crescendo && !st.done){
+    c.style.display="inline-block";
+    c.textContent = "CRESCENDO · turns left: " + ((st.max_turns - st.turns) ?? "?");
+  } else c.style.display="none";
+}
+async function refreshTotals(){
+  const st = await api("/api/state");
+  $("sessTotals").textContent =
+    `session: ${st.session_tokens??0} tok · $${(st.session_usd??0).toFixed(5)} · best ${st.best??"–"} tok`;
+  $("budgetLine").textContent = `refusal budget: ${st.refusals??0} · evasions: ${st.evasions??0}`;
+  updateCresChip(st);
+  return st;
+}
+
+/* ---------- attacking ---------- */
+async function attack(){
+  const payload = $("payload").value.trim();
+  if(!payload) return;
+  $("payload").value = ""; updatePreview();
+  addBubble("you", payload, chip("NEUTRAL","≈ "+estTokens(payload)+" tok"));
+  $("sendBtn").disabled = true;
+  $("sendBtn").textContent = "thinking…";
+  $("sendBtn").classList.add("spin");
+  try{
+    const r = await api("/api/attack", {payload});
+    const meta = [
+      chip(r.win?"win":r.response_class.toLowerCase(), (r.win?"WIN ":"") + r.tokens + " tok"),
+      chip("NEUTRAL", "$"+Number(r.usd).toFixed(5)),
+      chip("NEUTRAL", r.elapsed_s+"s"),
+      r.judge_score!=null ? chip("LEAK","JUDGE "+r.judge_score+"/10") : "",
+    ].filter(Boolean).join("");
+    addBubble("bot", r.response, meta);
+    if(!r.win && r.response_class!=="NEUTRAL")
+      $("chat").insertAdjacentHTML("beforeend",
+        `<div style="align-self:flex-start" class="note">${safe(r.response_class)}${r.budget_note?" · "+safe(r.budget_note):""}</div>`);
+    if(r.win) $("stuckHint").style.display="none";
+    else showStuckHint(r.miss_streak||0,
+                       parseInt($("tierSel").value)||1, r.practice);
+    if(r.note) addBubble("bot","", `<span class="note">${safe(r.note)}</span>`);
+    if(r.new_record!=null) addBubble("bot","","<span class='chip win'>NEW RECORD "+r.new_record+" tok</span>");
+    if(r.pending_tag) openTagModal();
+    if(r.stop_reason) showBanner("done", r.stop_reason.toUpperCase());
+    if(r.verdict) showBanner("verdict", "VERDICT: "+r.verdict);
+    if(r.drill){
+      S.drillActive = true;
+      if(r.drill.done){ showCard(r.drill); }
+      else if(r.win && r.drill.current){
+        $("chat").insertAdjacentHTML("beforeend",
+          `<div class="hint" style="padding:4px 0">next ▸ ${safe(r.drill.current.tier_label)}</div>`);
+      }
+      updateDrillHud({type:r.drill.type||MODE, index:r.drill.index, total:r.drill.total,
+                      remaining_s:r.drill.remaining_s});
+    }
+    if(r.done && !r.drill){ setArenaEnabled(false); $("cfgHint").textContent="session over — start a NEW SESSION"; }
+  }catch(e){
+    addBubble("bot","",`<span class="note">ERROR: ${safe(e.message)}</span>`);
+  }finally{
+    $("sendBtn").textContent="ATTACK"; $("sendBtn").classList.remove("spin");
+    const st = await refreshTotals();
+    if(!st.done) $("sendBtn").disabled=false;
+  }
+}
+function showBanner(kind,text){
+  const b=$("banner"); b.className="banner "+kind; b.textContent=text; b.style.display="block";
+}
+
+/* ---------- tagging ---------- */
+const TAGS=[["A","AUTHORITY"],["R","ROLEPLAY"],["E","ENCODING"],["C","CRESCENDO"],["T","TOOL_ABUSE"],["I","INDIRECT_INJECTION"],["S","SOCIAL_ENGINEERING"],["D","DIRECT_ASK"],["O","OTHER"]];
+function openTagModal(){
+  const box=$("tagBtns"); box.innerHTML="";
+  for(const [code,name] of TAGS){
+    const b=document.createElement("button");
+    b.textContent=`[${code}] ${name}`;
+    b.onclick=()=>closeTagModal(code,name);
+    box.appendChild(b);
+  }
+  $("tagModal").style.display="flex";
+}
+async function closeTagModal(code){
+  $("tagModal").style.display="none";
+  try{ await api("/api/tag",{code}); }catch(e){}
+  refreshStats(); refreshHeatmap(); refreshHistory();
+}
+
+/* ---------- sidebar ---------- */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active"); $("p-"+t.dataset.p).classList.add("active");
+    if(t.dataset.p==="history") refreshHistory();
+    if(t.dataset.p==="stats") refreshStats();
+  };
+});
+async function refreshStats(){
+  try{
+    const d = await api("/api/stats");
+    let html = "<h3>Cheapest solves</h3>";
+    const models = Object.keys(d.solves||{});
+    if(!models.length){ html += "<div class='hint'>no solves yet</div>"; }
+    for(const m of models){
+      html += `<table><tr><th colspan="3">${safe(m)}</th></tr><tr><th>T</th><th>tok</th><th>payload</th></tr>`;
+      for(const [lv,s] of Object.entries(d.solves[m]))
+        html += `<tr><td>${lv}</td><td>${s.tokens}</td><td>${safe(String(s.payload).slice(0,40))}</td></tr>`;
+      html += "</table>";
+    }
+    html += "<h3>Refusal thresholds</h3>";
+    const rt = d.refusal_thresholds||{};
+    if(!Object.keys(rt).length) html += "<div class='hint'>no data yet</div>";
+    for(const [k,v] of Object.entries(rt))
+      html += `<div class="kv"><span>${safe(k)}</span><span>~${v} refusals</span></div>`;
+    html += `<div class="kv"><span><b>total spend</b></span><span>$${(d.total_usd||0).toFixed(4)}</span></div>`;
+    $("statsBody").innerHTML = html;
+  }catch(e){}
+}
+async function refreshHeatmap(){
+  try{
+    const d = await api("/api/heatmap");
+    const grid = bucket => {
+      const cols = d[bucket].cols;
+      if(!cols.length) return "<div class='hint'>no tagged wins yet</div>";
+      let h = "<table><tr><th>technique</th>" + cols.map(c=>`<th>${safe(c)}</th>`).join("") + "</tr>";
+      for(const [code,name] of d.techniques){
+        const row = d[bucket].rows[name]; if(!row) continue;
+        h += `<tr><td>${name}</td>` + cols.map(c=>{
+          const cell=row[c];
+          return `<td>${cell? cell.wins+"/"+cell.avg : "-"}</td>`;
+        }).join("")+"</tr>";
+      }
+      return h+"</table>";
+    };
+    $("p-heatmap").innerHTML = "<h3>wins / avg-tok per technique × MODEL</h3>"+grid("by_model")
+      +"<h3>× TIER</h3>"+grid("by_tier");
+  }catch(e){}
+}
+async function refreshHistory(){
+  try{
+    const d = await api("/api/history");
+    const rows = (d.history||[]).slice(0,25);
+    if(!rows.length){ $("p-history").innerHTML="<div class='hint'>no attempts yet</div>"; return; }
+    let h="<table><tr><th>ts</th><th>T</th><th>tok</th><th>r?</th><th>class</th><th>tech</th></tr>";
+    for(const e of rows)
+      h+=`<tr><td>${safe((e.ts||"").slice(5,16))}</td><td>${e.level}</td><td>${e.payload_tokens}</td><td>${e.win?"✔":"✘"}</td><td>${safe(e.response_class||"-")}</td><td>${safe(e.technique||"-")}</td></tr>`;
+    $("p-history").innerHTML=h+"</table>";
+  }catch(e){}
+}
+async function runDoctor(){
+  $("doctorOut").innerHTML="<span class='spin'>checking…</span>";
+  const d = await api("/api/doctor");
+  let h="";
+  for(const e of d.entries)
+    h+=`<div class="kv doctor${e.state}"><span>[${e.state}] ${safe(e.check)}</span><span>${safe(e.detail)}</span></div>`;
+  h+=`<div class="kv"><span>overall</span><span class="${d.ok?"doctorOK":"doctorFAIL"}">${d.ok?"PASS":"PROBLEMS"}</span></div>`;
+  $("doctorOut").innerHTML=h;
+  $("doctorDot").style.background = d.provider_ok !== false && d.ok ? "var(--green)" : "var(--red)";
+}
+
+/* ---------- wire up ---------- */
+$("newBtn").onclick = ()=>{
+  if(MODE==="free"){ newSession().catch(e=>alert(e.message)); }
+  else { startDrill().catch(e=>alert(e.message)); }
+};
+$("skipBtn").onclick = skipTier;
+$("csvBtn").onclick = ()=>{ window.location = "/api/export.csv"; };
+$("repRun").onclick = ()=>refreshReport();
+$("sendBtn").onclick = attack;
+$("payload").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); attack(); }});
+$("docRun").onclick = ()=>runDoctor().catch(e=>$("doctorOut").textContent=e.message);
+
+loadState().then(()=>{ loadSettings(); }).then(updatePreview).catch(e=>{ $("cfgHint").textContent="API offline: "+e.message; });
+
+/* ---------- settings tab ---------- */
+async function loadSettings(){
+  const c = await api("/api/config");
+  window._cfg = c;
+  const opts = c.presets.map(p=>`<option ${p===c.provider?"selected":""}>${p}</option>`).join("")
+    + `<option ${!c.presets.includes(c.provider)?"selected":""}>custom</option>`;
+  $("p-settings").innerHTML = `
+    <h3>Connection</h3>
+    <label class="kv">provider
+      <select id="setProvider">${opts}</select></label>
+    <label class="kv">base url <input id="setUrl" value="${safe(c.base_url)}" style="width:180px"></label>
+    <label class="kv">api key <input id="setKey" type="password" placeholder="${safe(c.api_key_masked||'not set')}" style="width:180px"></label>
+    <div class="hint">key source: ${safe(c.api_key_source)} · stored in ${safe(c.config_path)}</div>
+    <h3>Models</h3>
+    <label class="kv">primary model <input id="setModel" value="${safe(c.model)}" style="width:150px"></label>
+    <label class="kv">judge model <input id="setJudge" value="${safe(c.judge_model)}" style="width:150px"></label>
+    <label class="kv">compare list <input id="setModels" value="${safe(c.models)}" style="width:150px"></label>
+    <label class="kv">prices (in,out /1M) <input id="setPrices" value="${safe(c.prices)}" style="width:120px"></label>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" id="setSave">SAVE & APPLY</button>
+      <button id="setReset">reset to env</button>
+    </div>
+    <div class="hint">blank key field = keep stored key. applies to your NEXT new session.</div>`;
+  $("setProvider").onchange = ()=>{
+    const preset = window._cfg.presets_detail[$("setProvider").value];
+    if(preset){
+      $("setUrl").value = preset.base_url;
+      $("setModel").value = preset.model;
+      if(!$("setJudge").value) $("setJudge").value = preset.model;
+    }
+  };
+  $("setSave").onclick = saveSettings;
+  $("setReset").onclick = async ()=>{ await api("/api/config/reset",{}); loadSettings(); runDoctor(); };
+}
+async function saveSettings(){
+  const body = {
+    provider: $("setProvider").value,
+    base_url: $("setUrl").value,
+    model: $("setModel").value,
+    judge_model: $("setJudge").value,
+    models: $("setModels").value,
+    prices: $("setPrices").value,
+  };
+  const k = $("setKey").value.trim();
+  if(k) body.api_key = k;
+  await api("/api/config", body);
+  await loadState();
+  loadSettings();
+}
+
+/* ---------- report tab ---------- */
+async function refreshReport(){
+  const d = await api("/api/report");
+  if(!d.attempts){ $("reportOut").innerHTML="<div class='hint'>no attempts this week</div>"; return; }
+  let h = `<table><tr><th>attempts</th><th>wins</th><th>miss%</th><th>$</th></tr>
+    <tr><td>${d.attempts}</td><td>${d.wins}</td><td>${d.miss_rate_pct}</td><td>${(d.spend_usd||0).toFixed(4)}</td></tr></table>`;
+  h += "<h3>per-tier</h3><table><tr><th>T</th><th>att/wins</th><th>%</th></tr>";
+  for(const [lv,s] of Object.entries(d.per_tier))
+    h += `<tr><td>T${lv}</td><td>${s.attempts}/${s.wins}</td><td>${s.win_pct}</td></tr>`;
+  h += "</table>";
+  if(d.judge_avg!=null) h += `<div class="kv"><span>judge avg</span><span>${d.judge_avg}/10 (${d.judge_count})</span></div>`;
+  if(d.fixations.length) h += "<h3>fixations</h3>" + d.fixations.map(f=>`<div class="note">"${safe(f.opening)}..." ×${f.count}</div>`).join("");
+  if(d.suggested_queue?.length) h += `<div class="kv"><span>suggested queue</span><span>${d.suggested_queue.map(t=>"T"+t).join(", ")}</span></div>`;
+  $("reportOut").innerHTML = h;
+}
+</script>
+</body>
+</html>
