@@ -535,7 +535,7 @@ async function loadSettings(){
       <select id="setProvider">${opts}</select></label>
     <label class="kv">base url <input id="setUrl" value="${safe(c.base_url)}" style="width:180px"></label>
     <label class="kv">api key <input id="setKey" type="password" placeholder="${safe(c.api_key_masked||'not set')}" style="width:180px"></label>
-    <div class="hint">key source: ${safe(c.api_key_source)} · stored in ${safe(c.config_path)}</div>
+    <div class="hint">key source: ${safe(c.api_key_source)} · stored locally, masked forever</div>
     <h3>Models</h3>
     <label class="kv">primary model <input id="setModel" value="${safe(c.model)}" style="width:150px"></label>
     <label class="kv">judge model <input id="setJudge" value="${safe(c.judge_model)}" style="width:150px"></label>

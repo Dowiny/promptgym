@@ -181,6 +181,12 @@ Your API key is write-only over HTTP: the browser can save it but only ever
 receives a masked suffix back. It lives solely in that local file and your
 provider requests.
 
+⚠️ **Privacy note:** every payload you type and every response you receive is
+logged locally to `data/attempts.jsonl` — that history is what powers your
+stats and heatmaps. Never paste real passwords, production credentials, or
+confidential data as attack material; use the synthetic targets and fake
+secrets the gym generates.
+
 ## FAQ
 
 **Low tiers feel impossible!**

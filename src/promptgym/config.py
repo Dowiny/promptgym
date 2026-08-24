@@ -2,10 +2,11 @@
 
 Precedence per field: saved settings file > environment > preset defaults.
 The API key is write-only over HTTP - GET responses carry a masked suffix,
-never the raw value.
+never the raw value. The local filesystem path is likewise never exposed.
 """
 
 import json
+import os
 
 from . import providers
 from .storage import DATA_DIR
@@ -29,7 +30,8 @@ def save(cfg):
     """Merge-save: blank/missing fields PRESERVE previously stored values.
 
     Only non-empty incoming fields overwrite. This prevents the classic
-    'edited one setting and wiped my API key' accident.
+    'edited one setting and wiped my API key' accident. The file is written
+    with restrictive permissions where the OS supports it (POSIX 0600).
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     existing = load()
@@ -38,6 +40,10 @@ def save(cfg):
     merged = dict(existing)
     merged.update(incoming)
     CONFIG_PATH.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+    try:
+        os.chmod(CONFIG_PATH, 0o600)  # POSIX; Windows ACLs already user-scoped
+    except Exception:  # noqa: BLE001 - best effort only
+        pass
     return merged
 
 
@@ -70,7 +76,6 @@ def resolved_view():
         "api_key_masked": mask(saved.get("api_key") or providers.API_KEY),
         "api_key_source": "settings" if saved.get("api_key") else (
             "env" if providers.API_KEY else "none"),
-        "config_path": str(CONFIG_PATH),
     }
 
 
