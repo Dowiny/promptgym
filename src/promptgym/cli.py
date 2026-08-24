@@ -178,12 +178,8 @@ def main(argv=None):
 
         webapp.serve(port=args.port)
         return 0
-    if not providers.API_KEY:
-        sys.exit(
-            "No API key found. Set OPENAI_API_KEY (or PROMPTGYM_API_KEY).\n"
-            "$0 path: install Ollama, `ollama pull llama3.1`, set "
-            "PROMPTGYM_PROVIDER=ollama - no key needed."
-        )
+
+    # Read-only analytics work without a key (CI smoke tests rely on this).
     if args.export:
         out = storage.export_matrix_csv()
         print("transfer matrix written: %s" % out)
@@ -199,6 +195,14 @@ def main(argv=None):
 
         taxonomy.render_heatmap()
         return 0
+
+    # Everything below ATTACKS a model - key required from here on.
+    if not providers.API_KEY:
+        sys.exit(
+            "No API key found. Set OPENAI_API_KEY (or PROMPTGYM_API_KEY).\n"
+            "$0 path: install Ollama, `ollama pull llama3.1`, set "
+            "PROMPTGYM_PROVIDER=ollama - no key needed."
+        )
     if args.sim:
         run_sim(args)
         return 0
